@@ -25,6 +25,7 @@ const jobPostingRoutes = require("./routes/jobPostingRoutes");
 const eligibilityRoutes = require("./routes/eligibilityRoutes");
 const applicationRoutes = require("./routes/applicationRoutes");
 const studentJobsRoutes = require("./routes/studentJobs");
+const interviewRoutes = require("./routes/interviewRoutes");
 
 mongoose
   .connect(process.env.MONGO_URI)
@@ -48,6 +49,7 @@ app.use("/api/jobs", jobPostingRoutes);
 app.use("/api/eligibility", eligibilityRoutes);
 
 app.use("/api/applications", applicationRoutes);
+app.use("/api/interviews", interviewRoutes);
 
 app.get("/", (req, res) => {
   res.send("Placement Backend Running Successfully");
