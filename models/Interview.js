@@ -73,8 +73,40 @@ const interviewSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ["Scheduled", "Completed", "Cancelled"],
+      enum: ["Scheduled", "Rescheduled", "Completed", "Cancelled"],
       default: "Scheduled",
+    },
+
+    result: {
+      type: String,
+      enum: ["Pending", "Selected", "Rejected", "On Hold"],
+      default: "Pending",
+    },
+
+    feedback: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+
+    // Links to the real application. company, jobProfile and student
+    // above hold the display names.
+    applicationId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Application",
+      default: null,
+    },
+
+    studentId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Student",
+      default: null,
+    },
+
+    jobPostingId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "JobPosting",
+      default: null,
     },
   },
   {

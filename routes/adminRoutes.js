@@ -48,12 +48,49 @@ router.post("/login", async (req, res) => {
 
     res.status(200).json({
       message: "Login Successful",
+      _id: admin._id,
       name: admin.name,
       email: admin.email,
       phone: admin.phone,
     });
   } catch (error) {
     res.status(500).send(error.message);
+  }
+});
+
+// UPDATE ADMIN PROFILE
+router.put("/:id", async (req, res) => {
+  try {
+    const { name, email, phone } = req.body;
+
+    const admin = await Admin.findByIdAndUpdate(
+      req.params.id,
+      { name, email, phone },
+      { new: true, runValidators: true }
+    ).select("-password");
+
+    if (!admin) {
+      return res.status(404).json({
+        success: false,
+        message: "Admin not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Profile updated successfully",
+      admin,
+    });
+  } catch (error) {
+    const isDuplicate = error.code === 11000;
+
+    res.status(isDuplicate ? 400 : 500).json({
+      success: false,
+      message: isDuplicate
+        ? "Email or phone already in use"
+        : "Failed to update profile",
+      error: error.message,
+    });
   }
 });
 

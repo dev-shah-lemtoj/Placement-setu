@@ -1,6 +1,7 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
+const path = require("path");
 require("dotenv").config();
 
 const app = express();
@@ -14,7 +15,10 @@ app.use(
   })
 );
 
-app.use(express.json());
+// Resumes are uploaded as base64 JSON (max 5MB file -> ~7MB body)
+app.use(express.json({ limit: "10mb" }));
+
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 const studentRoutes = require("./routes/studentRoutes");
 const adminRoutes = require("./routes/adminRoutes");
@@ -26,6 +30,9 @@ const eligibilityRoutes = require("./routes/eligibilityRoutes");
 const applicationRoutes = require("./routes/applicationRoutes");
 const studentJobsRoutes = require("./routes/studentJobs");
 const interviewRoutes = require("./routes/interviewRoutes");
+const notificationRoutes = require("./routes/notificationRoutes");
+const reportRoutes = require("./routes/reportRoutes");
+const quizRoutes = require("./routes/quizRoutes");
 
 mongoose
   .connect(process.env.MONGO_URI)
@@ -50,6 +57,9 @@ app.use("/api/eligibility", eligibilityRoutes);
 
 app.use("/api/applications", applicationRoutes);
 app.use("/api/interviews", interviewRoutes);
+app.use("/api/notifications", notificationRoutes);
+app.use("/api/reports", reportRoutes);
+app.use("/api/quiz", quizRoutes);
 
 app.get("/", (req, res) => {
   res.send("Placement Backend Running Successfully");
