@@ -38,7 +38,9 @@ const jobPopulate = {
 };
 
 const studentFields =
-  "name email phone college course branch cgpa passingYear backlogs skills resume";
+  "name email phone college course branch year cgpa passingYear backlogs " +
+  "tenthPercentage twelfthPercentage attendance educationGap skills " +
+  "certifications resume photoUrl";
 
 function formatApplication(application) {
   const item = application.toObject();

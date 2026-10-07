@@ -4,6 +4,7 @@ const path = require("path");
 const router = express.Router();
 
 const Student = require("../models/Student");
+const Application = require("../models/Application");
 
 
 // ================= REGISTER STUDENT =================
@@ -225,9 +226,30 @@ router.get("/", async(req,res)=>{
         _id:-1,
       });
 
+    // Placement status for each student, from their applications
+    const applications = await Application.find()
+      .select("studentId status");
 
+    const statusOf = new Map();
 
-    res.status(200).json(students);
+    for (const application of applications) {
+      const id = application.studentId.toString();
+      const current = statusOf.get(id);
+
+      if (application.status === "Selected") {
+        statusOf.set(id, "Placed");
+      } else if (current !== "Placed") {
+        statusOf.set(id, "In Process");
+      }
+    }
+
+    res.status(200).json(
+      students.map((student) => ({
+        ...student.toObject(),
+        placementStatus:
+          statusOf.get(student._id.toString()) || "Not Applied",
+      }))
+    );
 
 
 

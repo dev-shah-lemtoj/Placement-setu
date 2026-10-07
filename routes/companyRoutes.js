@@ -2,6 +2,8 @@ const express = require("express");
 const router = express.Router();
 const Company = require("../models/Company");
 const CompanyUser = require("../models/CompanyUser");
+const JobPosting = require("../models/JobPosting");
+const Application = require("../models/Application");
 
 const profileFields = [
   "companyName",
@@ -76,6 +78,21 @@ router.get("/", async (req, res) => {
 
     const profiles = await Company.find().sort({ createdAt: -1 });
 
+    // Job and hiring counts per company name
+    const jobs = await JobPosting.find().select("_id companyName status");
+    const hires = await Application.find({ status: "Selected" }).select("jobId");
+
+    const statsFor = (companyName) => {
+      const own = jobs.filter((job) => job.companyName === companyName);
+      const ids = new Set(own.map((job) => job._id.toString()));
+
+      return {
+        jobCount: own.length,
+        openJobCount: own.filter((job) => job.status === "Open").length,
+        hiredCount: hires.filter((h) => ids.has(h.jobId.toString())).length,
+      };
+    };
+
     const usedProfiles = new Set();
 
     const companies = accounts.map((account) => {
@@ -106,6 +123,7 @@ router.get("/", async (req, res) => {
         hasAccount: true,
         hasProfile: Boolean(profile),
         createdAt: account.createdAt,
+        ...statsFor(account.companyName),
       };
     });
 
@@ -116,6 +134,7 @@ router.get("/", async (req, res) => {
         ...profile.toObject(),
         hasAccount: false,
         hasProfile: true,
+        ...statsFor(profile.companyName),
       });
     }
 

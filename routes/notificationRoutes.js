@@ -83,6 +83,34 @@ async function resolveRecipients(audience, companyName) {
 }
 
 // ======================================================
+// T&P - HOW MANY STUDENTS WOULD RECEIVE IT
+// ======================================================
+//
+// GET /audience-count?audience=Selected%20Students&companyName=Acme
+
+router.get("/audience-count", async (req, res) => {
+  try {
+    const audience = req.query.audience || "All Students";
+
+    const count =
+      audience === "All Students"
+        ? await Student.countDocuments()
+        : (await resolveRecipients(audience, req.query.companyName)).length;
+
+    res.status(200).json({
+      success: true,
+      count,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to count recipients",
+      error: error.message,
+    });
+  }
+});
+
+// ======================================================
 // T&P - SEND NOTIFICATION
 // ======================================================
 

@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 
 const JobPosting = require("../models/JobPosting");
+const Application = require("../models/Application");
 
 // GET JOBS
 // Open jobs by default; ?status=all returns open and closed jobs.
@@ -13,9 +14,22 @@ router.get("/", async (req, res) => {
       .populate("jobProfileId")
       .sort({ createdAt: -1 });
 
+    // Number of applications per job
+    const counts = await Application.aggregate([
+      { $match: { jobId: { $in: jobs.map((job) => job._id) } } },
+      { $group: { _id: "$jobId", count: { $sum: 1 } } },
+    ]);
+
+    const countOf = new Map(
+      counts.map((c) => [c._id.toString(), c.count])
+    );
+
     res.status(200).json({
       success: true,
-      jobs: jobs,
+      jobs: jobs.map((job) => ({
+        ...job.toObject(),
+        applicantCount: countOf.get(job._id.toString()) || 0,
+      })),
     });
   } catch (error) {
     console.error(error);

@@ -152,7 +152,7 @@ router.get("/company/:companyName", async (req, res) => {
     const interviews = await Interview.find({
       company: req.params.companyName,
     })
-      .populate("studentId", "name email phone course branch cgpa resume")
+      .populate("studentId", "name email phone course branch cgpa resume photoUrl")
       .sort({ date: 1, time: 1 });
 
     res.status(200).json({
