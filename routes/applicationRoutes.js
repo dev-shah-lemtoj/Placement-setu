@@ -7,6 +7,11 @@ const Student = require("../models/Student");
 const JobPosting = require("../models/JobPosting");
 const Interview = require("../models/Interview");
 const { notifyStudents } = require("../utils/notify");
+const {
+  checkEligibility,
+  eligibilityMessage,
+} = require("../utils/eligibility");
+const { Eligibility } = require("./eligibilityRoutes");
 
 // ======================================================
 // ALLOWED APPLICATION STATUSES
@@ -105,7 +110,7 @@ router.post("/apply", async (req, res) => {
     }
 
     const job = await JobPosting.findById(jobId)
-      .populate("jobProfileId", "jobTitle");
+      .populate("jobProfileId", "jobTitle skillsRequired");
 
     if (!job) {
       return res.status(404).json({
@@ -130,14 +135,18 @@ router.post("/apply", async (req, res) => {
       });
     }
 
-    if (
-      student.cgpa != null &&
-      job.eligibilityCGPA != null &&
-      student.cgpa < job.eligibilityCGPA
-    ) {
+    const eligibility = checkEligibility(
+      student,
+      job,
+      await Eligibility.find().lean()
+    );
+
+    if (!eligibility.eligible) {
       return res.status(400).json({
         success: false,
-        message: `Minimum CGPA required is ${job.eligibilityCGPA}`,
+        message: eligibilityMessage(eligibility),
+        reasons: eligibility.reasons,
+        missing: eligibility.missing,
       });
     }
 

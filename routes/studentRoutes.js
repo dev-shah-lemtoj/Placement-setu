@@ -177,6 +177,8 @@ router.post("/login", async (req,res)=>{
 
         phone:student.phone,
 
+        photoUrl:student.photoUrl,
+
 
       }
 
@@ -492,6 +494,10 @@ const profileFields = [
   "cgpa",
   "passingYear",
   "backlogs",
+  "tenthPercentage",
+  "twelfthPercentage",
+  "attendance",
+  "educationGap",
   "address",
   "skills",
   "certifications",
@@ -643,61 +649,104 @@ router.post("/:id/resume", async (req, res) => {
 });
 
 
-// ================= UPLOAD CERTIFICATE IMAGE =================
+// ================= IMAGE UPLOADS =================
 //
-// Body: { fileName, fileBase64 }. Returns the image URL, which the
-// app then saves on the certification through PUT /:id/profile.
+// Body: { fileName, fileBase64 }. Saves a JPG / PNG / WEBP image under
+// uploads/<folder> and returns its URL, or sends an error and
+// returns null.
 
-const certificateDir = path.join(__dirname, "..", "uploads", "certificates");
 const allowedImageTypes = ["jpg", "jpeg", "png", "webp"];
 const maxImageBytes = 3 * 1024 * 1024;
 
+async function saveStudentImage(req, res, folder) {
+  const { fileName, fileBase64 } = req.body;
+
+  const extension = path
+    .extname(fileName || "")
+    .replace(".", "")
+    .toLowerCase();
+
+  if (!fileBase64 || !allowedImageTypes.includes(extension)) {
+    res.status(400).json({
+      success: false,
+      message: "Upload a JPG, PNG or WEBP image",
+    });
+    return null;
+  }
+
+  const buffer = Buffer.from(fileBase64, "base64");
+
+  if (buffer.length > maxImageBytes) {
+    res.status(400).json({
+      success: false,
+      message: "Image too large. Max 3MB allowed",
+    });
+    return null;
+  }
+
+  if (!(await Student.exists({ _id: req.params.id }))) {
+    res.status(404).json({
+      success: false,
+      message: "Student Not Found",
+    });
+    return null;
+  }
+
+  const dir = path.join(__dirname, "..", "uploads", folder);
+
+  fs.mkdirSync(dir, { recursive: true });
+
+  const storedName = `${req.params.id}-${Date.now()}.${extension}`;
+
+  fs.writeFileSync(path.join(dir, storedName), buffer);
+
+  return `/uploads/${folder}/${storedName}`;
+}
+
+// Certificate image: the app saves the returned URL on the
+// certification through PUT /:id/profile.
 router.post("/:id/certificate-image", async (req, res) => {
   try {
-    const { fileName, fileBase64 } = req.body;
+    const imageUrl = await saveStudentImage(req, res, "certificates");
 
-    const extension = path
-      .extname(fileName || "")
-      .replace(".", "")
-      .toLowerCase();
-
-    if (!fileBase64 || !allowedImageTypes.includes(extension)) {
-      return res.status(400).json({
-        success: false,
-        message: "Upload a JPG, PNG or WEBP image",
-      });
-    }
-
-    const buffer = Buffer.from(fileBase64, "base64");
-
-    if (buffer.length > maxImageBytes) {
-      return res.status(400).json({
-        success: false,
-        message: "Image too large. Max 3MB allowed",
-      });
-    }
-
-    if (!(await Student.exists({ _id: req.params.id }))) {
-      return res.status(404).json({
-        success: false,
-        message: "Student Not Found",
-      });
-    }
-
-    fs.mkdirSync(certificateDir, { recursive: true });
-
-    const storedName = `${req.params.id}-${Date.now()}.${extension}`;
-
-    fs.writeFileSync(path.join(certificateDir, storedName), buffer);
+    if (!imageUrl) return;
 
     res.status(200).json({
       success: true,
-      imageUrl: `/uploads/certificates/${storedName}`,
+      imageUrl,
     });
   } catch (error) {
     res.status(500).json({
       success: false,
       message: "Failed to upload image",
+      error: error.message,
+    });
+  }
+});
+
+// Profile photo: replaces the previous photo.
+router.post("/:id/photo", async (req, res) => {
+  try {
+    const photoUrl = await saveStudentImage(req, res, "photos");
+
+    if (!photoUrl) return;
+
+    const previous = await Student.findById(req.params.id).select("photoUrl");
+
+    if (previous && previous.photoUrl) {
+      fs.unlink(path.join(__dirname, "..", previous.photoUrl), () => {});
+    }
+
+    await Student.findByIdAndUpdate(req.params.id, { photoUrl });
+
+    res.status(200).json({
+      success: true,
+      photoUrl,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to upload photo",
       error: error.message,
     });
   }

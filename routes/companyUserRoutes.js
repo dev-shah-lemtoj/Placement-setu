@@ -4,6 +4,7 @@ const router = express.Router();
 const CompanyUser = require("../models/CompanyUser");
 const JobPosting = require("../models/JobPosting");
 const JobProfile = require("../models/JobProfile");
+const Company = require("../models/Company");
 const Interview = require("../models/Interview");
 const { Eligibility } = require("./eligibilityRoutes");
 
@@ -116,6 +117,7 @@ router.put("/:id", async (req, res) => {
       await Promise.all([
         JobPosting.updateMany(from, to),
         JobProfile.updateMany(from, to),
+        Company.updateMany({ companyUserId: company._id }, to),
         Eligibility.updateMany(from, to),
         Interview.updateMany(
           { company: previous.companyName },

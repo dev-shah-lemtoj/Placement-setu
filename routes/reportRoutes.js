@@ -5,6 +5,8 @@ const Student = require("../models/Student");
 const JobPosting = require("../models/JobPosting");
 const Application = require("../models/Application");
 const Interview = require("../models/Interview");
+const { checkEligibility } = require("../utils/eligibility");
+const { Eligibility } = require("./eligibilityRoutes");
 
 // Academic year "2026-27" runs from 1 June 2026 to 31 May 2027.
 function academicYearOf(date) {
@@ -83,11 +85,11 @@ router.get("/summary", async (req, res) => {
 
     // ---------------- data for the year ----------------
 
-    const students = await Student.find().select("cgpa course branch");
+    const students = await Student.find().select("-password");
 
     const jobs = await JobPosting.find({
       createdAt: { $gte: start, $lt: end },
-    }).populate("jobProfileId", "jobTitle");
+    }).populate("jobProfileId", "jobTitle skillsRequired");
 
     const jobIds = jobs.map((job) => job._id);
 
@@ -104,16 +106,12 @@ router.get("/summary", async (req, res) => {
       ).map((id) => id.toString())
     );
 
-    // A student is eligible if their CGPA meets at least one job's
-    // minimum CGPA for the year.
-    const lowestCGPA = jobs.length
-      ? Math.min(...jobs.map((job) => job.eligibilityCGPA || 0))
-      : null;
+    // A student is eligible if they meet the rules of at least one job
+    // posted in the year (the same rules as applying).
+    const criteria = await Eligibility.find().lean();
 
     const isEligible = (student) =>
-      lowestCGPA != null &&
-      student.cgpa != null &&
-      student.cgpa >= lowestCGPA;
+      jobs.some((job) => checkEligibility(student, job, criteria).eligible);
 
     // ---------------- funnel ----------------
 

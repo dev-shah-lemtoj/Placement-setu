@@ -37,6 +37,13 @@ const companySchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+
+    // The registered company account this profile belongs to
+    companyUserId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "CompanyUser",
+      default: null,
+    },
   },
   {
     timestamps: true,

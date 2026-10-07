@@ -79,7 +79,13 @@ const studentSchema = new mongoose.Schema({
   cgpa: { type: Number, default: null },
   passingYear: { type: Number, default: null },
   backlogs: { type: Number, default: 0 },
+  tenthPercentage: { type: Number, default: null },
+  twelfthPercentage: { type: Number, default: null },
+  attendance: { type: Number, default: null },
+  // Years of gap in education; like backlogs, 0 unless the student says otherwise
+  educationGap: { type: Number, default: 0 },
   address: { type: String, default: "" },
+  photoUrl: { type: String, default: "" },
 
   skills: {
     type: [skillSchema],

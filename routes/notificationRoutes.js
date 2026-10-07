@@ -5,6 +5,8 @@ const Notification = require("../models/Notification");
 const Application = require("../models/Application");
 const JobPosting = require("../models/JobPosting");
 const Student = require("../models/Student");
+const { checkEligibility } = require("../utils/eligibility");
+const { Eligibility } = require("./eligibilityRoutes");
 
 // ======================================================
 // RESOLVE AUDIENCE TO STUDENT IDS
@@ -33,6 +35,8 @@ async function studentsWithApplicationStatus(companyName, statuses) {
   return Application.distinct("studentId", filter);
 }
 
+// Students eligible for at least one open job (of the company, if
+// given), using the same rules as applying.
 async function eligibleStudents(companyName) {
   const filter = { status: "Open" };
 
@@ -40,17 +44,19 @@ async function eligibleStudents(companyName) {
     filter.companyName = companyName;
   }
 
-  const jobs = await JobPosting.find(filter).select("eligibilityCGPA");
+  const jobs = await JobPosting.find(filter)
+    .populate("jobProfileId", "jobTitle skillsRequired");
 
   if (jobs.length === 0) return [];
 
-  const lowestCGPA = Math.min(
-    ...jobs.map((job) => job.eligibilityCGPA || 0)
-  );
+  const criteria = await Eligibility.find().lean();
+  const students = await Student.find().select("-password");
 
-  return Student.distinct("_id", {
-    cgpa: { $gte: lowestCGPA },
-  });
+  return students
+    .filter((student) =>
+      jobs.some((job) => checkEligibility(student, job, criteria).eligible)
+    )
+    .map((student) => student._id);
 }
 
 async function resolveRecipients(audience, companyName) {

@@ -3,12 +3,13 @@ const router = express.Router();
 
 const JobPosting = require("../models/JobPosting");
 
-// GET ALL OPEN JOBS
+// GET JOBS
+// Open jobs by default; ?status=all returns open and closed jobs.
 router.get("/", async (req, res) => {
   try {
-    const jobs = await JobPosting.find({
-      status: "Open",
-    })
+    const filter = req.query.status === "all" ? {} : { status: "Open" };
+
+    const jobs = await JobPosting.find(filter)
       .populate("jobProfileId")
       .sort({ createdAt: -1 });
 
@@ -59,6 +60,46 @@ router.post("/", async (req, res) => {
       message: isValidationError
         ? "Invalid job details"
         : "Failed to post job",
+      error: error.message,
+    });
+  }
+});
+
+// OPEN / CLOSE A JOB POSTING
+// Closed jobs stop appearing to students and can't be applied to.
+router.put("/:id/status", async (req, res) => {
+  try {
+    const { status } = req.body;
+
+    if (!["Open", "Closed"].includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: "Status must be Open or Closed",
+      });
+    }
+
+    const job = await JobPosting.findByIdAndUpdate(
+      req.params.id,
+      { status },
+      { new: true }
+    ).populate("jobProfileId");
+
+    if (!job) {
+      return res.status(404).json({
+        success: false,
+        message: "Job not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `Job ${status === "Open" ? "reopened" : "closed"}`,
+      job,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to update job",
       error: error.message,
     });
   }

@@ -76,7 +76,8 @@ router.post("/save", async (req, res) => {
       });
     }
 
-    const saved = await Eligibility.findOneAndUpdate(
+    // Replace (not merge) so rules left out of a new save are removed
+    const saved = await Eligibility.findOneAndReplace(
       { companyName, jobTitle },
       criteria,
       { new: true, upsert: true, runValidators: true }
