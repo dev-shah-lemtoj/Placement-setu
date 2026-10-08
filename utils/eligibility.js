@@ -36,6 +36,16 @@ function sameText(a, b) {
     String(b || "").trim().toLowerCase();
 }
 
+// Skill names are typed freely, so "Basic of Python." matches
+// "basic of python" and "Node.js" matches "NodeJS". + and # are kept
+// so C, C++ and C# stay different.
+function sameSkill(a, b) {
+  const key = (value) =>
+    String(value || "").toLowerCase().replace(/[^a-z0-9+#]/g, "");
+
+  return key(a) === key(b);
+}
+
 function isSet(value) {
   return value !== null && value !== undefined && value !== "";
 }
@@ -150,7 +160,7 @@ function checkEligibility(student, job, criteriaList) {
   const studentSkills = (student.skills || []).map((skill) => skill.name);
 
   const missingSkills = requiredSkills.filter(
-    (skill) => !studentSkills.some((owned) => sameText(owned, skill))
+    (skill) => !studentSkills.some((owned) => sameSkill(owned, skill))
   );
 
   if (missingSkills.length) {
